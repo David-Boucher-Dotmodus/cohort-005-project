@@ -109,7 +109,7 @@ async function seed() {
   // hand-written narrative data (comments, quiz attempts, ratings), and the
   // cohort generated further down, which supplies volume. Anything that picks a
   // student out of a list does it by email, never by array position — see
-  // studentByEmail — so appending or inserting students never silently
+  // learnerByEmail — so appending or inserting students never silently
   // re-points a coupon redemption at someone else.
 
   const [admin] = db
@@ -171,35 +171,35 @@ async function seed() {
       {
         name: "Emma Wilson",
         email: "emma.wilson@student.dev",
-        role: UserRole.Student,
+        role: UserRole.Learner,
         avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=emma",
         createdAt: daysAgo(60),
       },
       {
         name: "James Park",
         email: "james.park@student.dev",
-        role: UserRole.Student,
+        role: UserRole.Learner,
         avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=james",
         createdAt: daysAgo(55),
       },
       {
         name: "Olivia Martinez",
         email: "olivia.martinez@student.dev",
-        role: UserRole.Student,
+        role: UserRole.Learner,
         avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=olivia",
         createdAt: daysAgo(45),
       },
       {
         name: "Liam Thompson",
         email: "liam@example.com",
-        role: UserRole.Student,
+        role: UserRole.Learner,
         avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=liam",
         createdAt: daysAgo(30),
       },
       {
         name: "Sophia Davis",
         email: "sophia.davis@student.dev",
-        role: UserRole.Student,
+        role: UserRole.Learner,
         avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=sophia",
         createdAt: daysAgo(20),
       },
@@ -212,7 +212,7 @@ async function seed() {
     .values({
       name: "Bossy McBossface",
       email: "bossy.mcbossface@student.dev",
-      role: UserRole.Student,
+      role: UserRole.Learner,
       avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=bossy",
       createdAt: daysAgo(40),
     })
@@ -241,7 +241,7 @@ async function seed() {
         name,
         // Matches the named students above: first.last@student.dev.
         email: `${slugify(name).replace(/-/g, ".")}@student.dev`,
-        role: UserRole.Student,
+        role: UserRole.Learner,
         avatarUrl: `https://api.dicebear.com/9.x/avataaars/svg?seed=${slugify(name)}`,
         // Spread across ~12 months, tightening towards today so the recent
         // ranges are populated. The last few sign up inside the last week.
@@ -256,7 +256,7 @@ async function seed() {
   const allStudents = [...students, bossy, ...cohort];
   const studentsByEmail = new Map(allStudents.map((s) => [s.email, s]));
 
-  function studentByEmail(email: string) {
+  function learnerByEmail(email: string) {
     const student = studentsByEmail.get(email);
     if (!student) throw new Error(`No seeded student with email ${email}`);
     return student;
@@ -2339,7 +2339,7 @@ This course is still in draft while the cluster examples are rewritten against t
   // Both already have an enrolment for course 2 from the enrolments section.
   db.update(schema.coupons)
     .set({
-      redeemedByUserId: studentByEmail("olivia.martinez@student.dev").id,
+      redeemedByUserId: learnerByEmail("olivia.martinez@student.dev").id,
       redeemedAt: daysAgo(30),
     })
     .where(eq(schema.coupons.id, seededCoupons[0].id))
@@ -2347,7 +2347,7 @@ This course is still in draft while the cluster examples are rewritten against t
 
   db.update(schema.coupons)
     .set({
-      redeemedByUserId: studentByEmail("liam@example.com").id,
+      redeemedByUserId: learnerByEmail("liam@example.com").id,
       redeemedAt: daysAgo(25),
     })
     .where(eq(schema.coupons.id, seededCoupons[1].id))
@@ -2620,7 +2620,7 @@ This course is still in draft while the cluster examples are rewritten against t
     purchasedDaysAgo: number,
     redeemerEmails: string[]
   ) {
-    const teamAdmin = studentByEmail(adminEmail);
+    const teamAdmin = learnerByEmail(adminEmail);
 
     const [team] = db
       .insert(schema.teams)
@@ -2665,7 +2665,7 @@ This course is still in draft while the cluster examples are rewritten against t
 
     // Redeemers named by email, for the reason given at the first team above.
     redeemerEmails.forEach((email, i) => {
-      const redeemer = studentByEmail(email);
+      const redeemer = learnerByEmail(email);
       const redeemedDaysAgo = Math.max(0, purchasedDaysAgo - (i + 1) * 2);
 
       db.update(schema.coupons)
@@ -2724,11 +2724,11 @@ This course is still in draft while the cluster examples are rewritten against t
     []
   );
 
-  // ─── Liam's Refund ───
-  // One learner with a Refund waiting on an admin. The dates count back from
-  // today, so the fourteen-day refund window is still open whenever you seed.
+  // ─── Liam's Refund Request ───
+  // One Learner with a Refund Request waiting on an admin. The dates count back from
+  // today, so the fourteen-day Refund Window is still open whenever you seed.
 
-  const liam = studentByEmail("liam@example.com");
+  const liam = learnerByEmail("liam@example.com");
   const [liamPurchase] = db
     .insert(schema.purchases)
     .values({
@@ -2781,7 +2781,7 @@ This course is still in draft while the cluster examples are rewritten against t
     })
     .run();
 
-  console.log("Created Liam's Refund.");
+  console.log("Created Liam's Refund Request.");
 
   // ─── Flush watch events ───
   // Batched: the heartbeat makes these by far the largest table, and one
@@ -2810,7 +2810,7 @@ This course is still in draft while the cluster examples are rewritten against t
 
   console.log("\n✓ Seed complete!");
   console.log(
-    `  Users: ${countRows(schema.users)} (${countRows(schema.users, eq(schema.users.role, UserRole.Admin))} admin, ${countRows(schema.users, eq(schema.users.role, UserRole.Instructor))} instructors, ${countRows(schema.users, eq(schema.users.role, UserRole.Student))} students)`
+    `  Users: ${countRows(schema.users)} (${countRows(schema.users, eq(schema.users.role, UserRole.Admin))} admin, ${countRows(schema.users, eq(schema.users.role, UserRole.Instructor))} instructors, ${countRows(schema.users, eq(schema.users.role, UserRole.Learner))} learners)`
   );
   console.log(`  Categories: ${countRows(schema.categories)}`);
   console.log(
